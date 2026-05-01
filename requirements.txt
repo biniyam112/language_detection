@@ -1,0 +1,13 @@
+torch
+torchaudio
+librosa
+numpy
+pandas
+scikit-learn
+matplotlib
+seaborn
+tqdm
+gradio
+soundfile
+requests
+python-dotenv
