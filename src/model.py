@@ -3,19 +3,21 @@ CNN model for spoken language identification.
 
 Architecture
 ------------
-Input:  (batch, 1, 128, T)   — single-channel Mel-spectrogram
+Input:  (batch, 1, 128, T)  -- single-channel Mel-spectrogram
 
-    Conv2d(1,   32,  3×3)  + BatchNorm + ReLU + MaxPool(2×2)
-    Conv2d(32,  64,  3×3)  + BatchNorm + ReLU + MaxPool(2×2)
-    Conv2d(64,  128, 3×3)  + BatchNorm + ReLU + MaxPool(2×2)
-    Conv2d(128, 256, 3×3)  + BatchNorm + ReLU + AdaptiveAvgPool(1×1)
+5 residual double-conv blocks, each with:
+    Conv2d(3x3) -> BN -> ReLU -> Conv2d(3x3) -> BN -> (+residual) -> ReLU -> Pool
 
-    Flatten
-    Linear(256, 128) + ReLU + Dropout(0.3)
-    Linear(128, num_classes)
+Block 1:   1 -> 32,  MaxPool(2)
+Block 2:  32 -> 64,  MaxPool(2)
+Block 3:  64 -> 128, MaxPool(2)
+Block 4: 128 -> 256, MaxPool(2)
+Block 5: 256 -> 512, AdaptiveAvgPool(1)
 
-AdaptiveAvgPool makes the model agnostic to the exact time-frame count,
-so minor variations in audio length are handled gracefully.
+Classifier:
+    Flatten -> Linear(512,256) -> ReLU -> Dropout(0.4)
+           -> Linear(256,128) -> ReLU -> Dropout(0.3)
+           -> Linear(128, num_classes)
 """
 
 import torch
@@ -25,23 +27,39 @@ from config import NUM_CLASSES
 
 
 class ConvBlock(nn.Module):
-    """Conv2d → BatchNorm → ReLU → pool."""
+    """Double Conv2d with a residual skip connection, followed by pooling."""
 
     def __init__(self, in_ch: int, out_ch: int, pool: nn.Module):
         super().__init__()
-        self.block = nn.Sequential(
+        self.conv1 = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
-            pool,
+        )
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(out_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_ch),
+        )
+        self.relu = nn.ReLU(inplace=True)
+        self.pool = pool
+
+        # 1x1 conv to match channel dimensions for the residual path
+        self.skip = (
+            nn.Conv2d(in_ch, out_ch, kernel_size=1)
+            if in_ch != out_ch
+            else nn.Identity()
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.block(x)
+        identity = self.skip(x)
+        out = self.conv1(x)
+        out = self.conv2(out)
+        out = self.relu(out + identity)
+        return self.pool(out)
 
 
 class LanguageCNN(nn.Module):
-    """4-layer CNN for language classification from Mel-spectrograms."""
+    """Deeper residual CNN for language classification from Mel-spectrograms."""
 
     def __init__(self, num_classes: int = NUM_CLASSES):
         super().__init__()
@@ -50,37 +68,35 @@ class LanguageCNN(nn.Module):
             ConvBlock(1, 32, nn.MaxPool2d(2)),
             ConvBlock(32, 64, nn.MaxPool2d(2)),
             ConvBlock(64, 128, nn.MaxPool2d(2)),
-            ConvBlock(128, 256, nn.AdaptiveAvgPool2d(1)),
+            ConvBlock(128, 256, nn.MaxPool2d(2)),
+            ConvBlock(256, 512, nn.AdaptiveAvgPool2d(1)),
         )
 
         self.classifier = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(256, 128),
-            nn.ReLU(inplace=True),
-            nn.Dropout(0.3),
-            nn.Linear(128, num_classes),
+            nn.Flatten(),          # 0
+            nn.Linear(512, 256),   # 1
+            nn.ReLU(inplace=True), # 2
+            nn.Dropout(0.4),       # 3
+            nn.Linear(256, 128),   # 4
+            nn.ReLU(inplace=True), # 5
+            nn.Dropout(0.3),       # 6
+            nn.Linear(128, num_classes),  # 7
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass.
-
-        Args:
-            x: Mel-spectrogram tensor of shape ``(batch, 1, n_mels, T)``.
-
-        Returns:
-            Logits of shape ``(batch, num_classes)``.
-        """
         x = self.features(x)
         x = self.classifier(x)
         return x
 
     def extract_embeddings(self, x: torch.Tensor) -> torch.Tensor:
-        """Return the 128-d penultimate-layer embeddings (useful for PCA
-        visualisation and nearest-neighbour analysis)."""
+        """Return 128-d penultimate-layer embeddings for PCA visualisation."""
         x = self.features(x)
         x = self.classifier[0](x)  # Flatten
-        x = self.classifier[1](x)  # Linear(256, 128)
+        x = self.classifier[1](x)  # Linear(512, 256)
         x = self.classifier[2](x)  # ReLU
+        x = self.classifier[3](x)  # Dropout
+        x = self.classifier[4](x)  # Linear(256, 128)
+        x = self.classifier[5](x)  # ReLU
         return x
 
 

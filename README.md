@@ -5,7 +5,7 @@ recordings. Built with PyTorch for a machine learning course project.
 
 ## Supported Languages
 
-English, Spanish, French, German, Italian, Russian, Amharic
+Amharic, Arabic, Chinese, English, French, Hindi, Italian, Russian, Spanish
 
 ## Quick Start
 
@@ -57,7 +57,7 @@ Conv2d(1,32)  -> BatchNorm -> ReLU -> MaxPool
 Conv2d(32,64) -> BatchNorm -> ReLU -> MaxPool
 Conv2d(64,128) -> BatchNorm -> ReLU -> MaxPool
 Conv2d(128,256) -> BatchNorm -> ReLU -> AdaptiveAvgPool
-Flatten -> Linear(256,128) -> ReLU -> Dropout -> Linear(128,7)
+Flatten -> Linear(256,128) -> ReLU -> Dropout -> Linear(128,9)
 ```
 
 ## Dataset

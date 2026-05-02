@@ -17,6 +17,8 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 from config import (
+    CACHE_FEATURES,
+    FEATURE_CACHE_DIR,
     RAW_DIR,
     LANGUAGES,
     LANG_TO_IDX,
@@ -69,6 +71,30 @@ def _discover_files() -> Tuple[List[str], List[int]]:
     return paths, labels
 
 
+def cache_path_for_audio(audio_path: str) -> Path:
+    """Return the cached Mel-spectrogram path for an audio file."""
+    p = Path(audio_path)
+    lang = p.parent.name
+    return FEATURE_CACHE_DIR / lang / f"{p.stem}.pt"
+
+
+def load_or_create_mel(audio_path: str) -> torch.Tensor:
+    """Load a cached Mel-spectrogram, or compute and cache it on first use."""
+    cache_path = cache_path_for_audio(audio_path)
+
+    if CACHE_FEATURES and cache_path.exists():
+        return torch.load(cache_path, map_location="cpu", weights_only=True)
+
+    waveform = load_audio(audio_path)
+    mel = extract_mel_spectrogram(waveform)
+
+    if CACHE_FEATURES:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(mel, cache_path)
+
+    return mel
+
+
 # ── Dataset class ────────────────────────────────────────────────────────
 
 class LanguageDataset(Dataset):
@@ -89,8 +115,7 @@ class LanguageDataset(Dataset):
         label = self.labels[idx]
 
         try:
-            waveform = load_audio(path)
-            mel = extract_mel_spectrogram(waveform)  # (1, n_mels, T)
+            mel = load_or_create_mel(path)  # (1, n_mels, T)
         except Exception:
             mel = torch.zeros(1, N_MELS, 157)  # fallback for corrupt files
             label = self.labels[idx]
@@ -152,6 +177,7 @@ def get_dataloaders(batch_size: int = BATCH_SIZE, num_workers: int = 0
             shuffle=(split_name == "train"),
             num_workers=num_workers,
             pin_memory=torch.cuda.is_available(),
+            persistent_workers=num_workers > 0,
         )
 
     print(f"Dataset sizes — "

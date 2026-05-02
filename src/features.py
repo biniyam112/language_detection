@@ -8,10 +8,9 @@ Pipeline:
                 ->  (optional) MFCC extraction
 """
 
-import torch
-import torchaudio
-import torchaudio.transforms as T
+import librosa
 import numpy as np
+import torch
 
 from config import (
     SAMPLE_RATE,
@@ -22,38 +21,14 @@ from config import (
     N_MFCC,
 )
 
-# Pre-built transforms (created once, reused)
-_mel_transform = T.MelSpectrogram(
-    sample_rate=SAMPLE_RATE,
-    n_fft=N_FFT,
-    hop_length=HOP_LENGTH,
-    n_mels=N_MELS,
-)
-
-_mfcc_transform = T.MFCC(
-    sample_rate=SAMPLE_RATE,
-    n_mfcc=N_MFCC,
-    melkwargs={"n_fft": N_FFT, "hop_length": HOP_LENGTH, "n_mels": N_MELS},
-)
-
-
 def load_audio(path: str, target_sr: int = SAMPLE_RATE) -> torch.Tensor:
     """Load an audio file, convert to mono, and resample to *target_sr*.
 
+    Uses librosa which handles MP3, WAV, FLAC, OGG out of the box.
     Returns a 1-D tensor of shape ``(num_samples,)``.
     """
-    waveform, sr = torchaudio.load(path)
-
-    # Convert to mono by averaging channels
-    if waveform.shape[0] > 1:
-        waveform = waveform.mean(dim=0, keepdim=True)
-
-    # Resample if necessary
-    if sr != target_sr:
-        resampler = T.Resample(orig_freq=sr, new_freq=target_sr)
-        waveform = resampler(waveform)
-
-    return waveform.squeeze(0)  # (num_samples,)
+    y, _ = librosa.load(path, sr=target_sr, mono=True)
+    return torch.from_numpy(y).float()
 
 
 def pad_or_truncate(waveform: torch.Tensor, length: int = NUM_SAMPLES) -> torch.Tensor:
@@ -76,8 +51,17 @@ def extract_mel_spectrogram(waveform: torch.Tensor) -> torch.Tensor:
         Tensor of shape ``(1, n_mels, time_frames)`` suitable for a 2-D CNN.
     """
     waveform = pad_or_truncate(waveform)
-    mel = _mel_transform(waveform)  # (n_mels, T)
-    mel_db = T.AmplitudeToDB()(mel)
+    y = waveform.detach().cpu().numpy()
+    mel = librosa.feature.melspectrogram(
+        y=y,
+        sr=SAMPLE_RATE,
+        n_fft=N_FFT,
+        hop_length=HOP_LENGTH,
+        n_mels=N_MELS,
+        power=2.0,
+    )
+    mel_db = librosa.power_to_db(mel, ref=np.max)
+    mel_db = torch.from_numpy(mel_db).float()
 
     # Normalise to zero mean / unit variance per spectrogram
     mel_db = (mel_db - mel_db.mean()) / (mel_db.std() + 1e-9)
@@ -92,8 +76,16 @@ def extract_mfcc(waveform: torch.Tensor) -> torch.Tensor:
         Tensor of shape ``(n_mfcc, time_frames)``.
     """
     waveform = pad_or_truncate(waveform)
-    mfcc = _mfcc_transform(waveform)  # (n_mfcc, T)
-    return mfcc
+    y = waveform.detach().cpu().numpy()
+    mfcc = librosa.feature.mfcc(
+        y=y,
+        sr=SAMPLE_RATE,
+        n_mfcc=N_MFCC,
+        n_fft=N_FFT,
+        hop_length=HOP_LENGTH,
+        n_mels=N_MELS,
+    )
+    return torch.from_numpy(mfcc).float()
 
 
 def audio_to_mel(path: str) -> torch.Tensor:

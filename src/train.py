@@ -30,6 +30,7 @@ from config import (
     LR_FACTOR,
     SEED,
     BATCH_SIZE,
+    NUM_WORKERS,
 )
 from model import LanguageCNN, count_parameters
 from dataset import get_dataloaders
@@ -109,7 +110,7 @@ def main():
     print(f"Device: {device}")
 
     # Data
-    loaders = get_dataloaders(batch_size=BATCH_SIZE, num_workers=0)
+    loaders = get_dataloaders(batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     # Model
     model = LanguageCNN().to(device)

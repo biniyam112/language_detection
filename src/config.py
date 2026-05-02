@@ -9,7 +9,7 @@ PROCESSED_DIR = DATA_DIR / "processed"
 CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 
 # ── Languages ────────────────────────────────────────────────────────────
-LANGUAGES = ["italian", "russian", "amharic", "hindi"]
+LANGUAGES = ["amharic", "arabic", "chinese", "english", "french", "hindi", "italian", "russian", "spanish"]
 LANG_TO_IDX = {lang: idx for idx, lang in enumerate(LANGUAGES)}
 IDX_TO_LANG = {idx: lang for idx, lang in enumerate(LANGUAGES)}
 NUM_CLASSES = len(LANGUAGES)
@@ -28,17 +28,20 @@ N_MELS = 128
 N_MFCC = 40
 
 # ── Training ─────────────────────────────────────────────────────────────
-BATCH_SIZE = 32
-NUM_EPOCHS = 50
-LEARNING_RATE = 1e-3
+BATCH_SIZE = 64
+NUM_EPOCHS = 30
+LEARNING_RATE = 3e-4
 WEIGHT_DECAY = 1e-4
+NUM_WORKERS = 4
+CACHE_FEATURES = True
+FEATURE_CACHE_DIR = PROCESSED_DIR / "mel_spectrograms"
 
 # Early stopping
-ES_PATIENCE = 5
+ES_PATIENCE = 8
 ES_MIN_DELTA = 1e-4
 
 # LR scheduler
-LR_PATIENCE = 3
+LR_PATIENCE = 4
 LR_FACTOR = 0.5
 
 # ── Data split ───────────────────────────────────────────────────────────
@@ -52,5 +55,7 @@ SEED = 42
 # ── Ensure directories exist ────────────────────────────────────────────
 for d in [RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR]:
     d.mkdir(parents=True, exist_ok=True)
+FEATURE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 for lang in LANGUAGES:
     (RAW_DIR / lang).mkdir(parents=True, exist_ok=True)
+    (FEATURE_CACHE_DIR / lang).mkdir(parents=True, exist_ok=True)

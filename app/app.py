@@ -69,9 +69,13 @@ def identify_language(audio):
 
     # Resample if needed
     if sr != SAMPLE_RATE:
-        import torchaudio.transforms as T
-        resampler = T.Resample(orig_freq=sr, new_freq=SAMPLE_RATE)
-        waveform = resampler(waveform.unsqueeze(0)).squeeze(0)
+        import librosa
+        waveform_np = librosa.resample(
+            waveform_np,
+            orig_sr=sr,
+            target_sr=SAMPLE_RATE,
+        )
+        waveform = torch.from_numpy(waveform_np).float()
 
     waveform = pad_or_truncate(waveform)
     mel = extract_mel_spectrogram(waveform).unsqueeze(0).to(DEVICE)
@@ -89,7 +93,7 @@ def build_app() -> gr.Blocks:
             "# Spoken Language Identifier\n"
             "Record or upload an audio clip and the model will predict "
             "which language is being spoken.\n\n"
-            "**Supported:** English, Spanish, French, German, Italian, Russian, Amharic"
+            "**Supported:** Amharic, Arabic, Chinese, English, French, Hindi, Italian, Russian, Spanish"
         )
 
         with gr.Row():
@@ -104,7 +108,7 @@ def build_app() -> gr.Blocks:
             with gr.Column(scale=1):
                 output_label = gr.Label(
                     label="Prediction",
-                    num_top_classes=7,
+                    num_top_classes=9,
                 )
 
         predict_btn.click(

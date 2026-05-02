@@ -9,5 +9,6 @@ seaborn
 tqdm
 gradio
 soundfile
+datasets<4
 requests
 python-dotenv
