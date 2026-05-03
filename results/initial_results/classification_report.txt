@@ -1,0 +1,17 @@
+              precision    recall  f1-score   support
+
+     Amharic       0.98      0.96      0.97      1975
+      Arabic       0.74      0.87      0.80      1815
+     Chinese       0.88      0.91      0.90      1987
+     English       0.96      0.99      0.98      1890
+      French       0.82      0.83      0.86      1979
+       Hindi       0.98      0.68      0.90      1818
+     Italian       0.82      0.79      0.80      1955
+     Russian       0.82      0.81      0.82      1884
+     Spanish       0.82      0.80      0.86      1920
+
+    accuracy                           0.89     17223
+   macro avg       0.90      0.89      0.89     17223
+weighted avg       0.90      0.89      0.89     17223
+
+Overall accuracy: 89.0%

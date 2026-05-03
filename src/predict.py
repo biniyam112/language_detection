@@ -3,6 +3,8 @@ Single-file inference for spoken language identification.
 
 Usage:
     python src/predict.py --audio path/to/audio.wav
+    python src/predict.py --audio path/to/audio.wav --model cnn
+    python src/predict.py --audio path/to/audio.wav --model lstm
 """
 
 import sys
@@ -14,18 +16,23 @@ import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import IDX_TO_LANG, LANGUAGES, MODEL_CHECKPOINT_DIR
+from config import CHECKPOINT_DIR, IDX_TO_LANG, LANGUAGES, MODEL_TYPE
 from model import build_model
 from features import load_audio, extract_mel_spectrogram, prepare_waveform
 
 
-def load_model(device: torch.device) -> torch.nn.Module:
-    ckpt_path = MODEL_CHECKPOINT_DIR / "best_model.pth"
+MODEL_CHOICES = ("cnn", "lstm")
+
+
+def load_model(device: torch.device, model_type: str = MODEL_TYPE) -> torch.nn.Module:
+    model_type = model_type.lower()
+    ckpt_path = CHECKPOINT_DIR / model_type / "best_model.pth"
     if not ckpt_path.exists():
         raise FileNotFoundError(
-            f"No checkpoint at {ckpt_path}. Train the model first with: python src/train.py"
+            f"No checkpoint at {ckpt_path}. Train it first with: "
+            f"python src/train.py --model {model_type}"
         )
-    model = build_model().to(device)
+    model = build_model(model_type).to(device)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
@@ -60,6 +67,12 @@ def main():
     )
     parser.add_argument("--audio", type=str, required=True,
                         help="Path to an audio file (.wav, .mp3, .flac, .ogg)")
+    parser.add_argument(
+        "--model",
+        choices=MODEL_CHOICES,
+        default=MODEL_TYPE,
+        help=f"Model architecture to use. Defaults to MODEL_TYPE={MODEL_TYPE!r}.",
+    )
     args = parser.parse_args()
 
     audio_path = Path(args.audio)
@@ -68,10 +81,11 @@ def main():
         sys.exit(1)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(device)
+    model = load_model(device, args.model)
 
     pred_lang, confidences = predict(str(audio_path), model, device)
 
+    print(f"\nModel: {args.model}")
     print(f"\nPredicted language: {pred_lang.capitalize()}")
     print(f"Confidence: {confidences[pred_lang]:.1%}")
     print("\nAll scores:")

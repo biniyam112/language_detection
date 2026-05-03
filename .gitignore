@@ -1,7 +1,5 @@
 .env
 data/
-checkpoints/
-results/
 venv/
 .venv/
 __pycache__/

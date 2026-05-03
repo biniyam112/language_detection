@@ -30,7 +30,7 @@ python src/train.py --model lstm
 python src/evaluate.py
 
 # 6. Predict one audio file
-python src/predict.py --audio path/to/audio.wav
+python src/predict.py --audio path/to/audio.wav --model cnn
 
 # 7. Launch the live Gradio demo
 python app/app.py
@@ -117,6 +117,13 @@ results/cnn/
 results/lstm/
 ```
 
+Single-file prediction also accepts the model type:
+
+```bash
+python src/predict.py --audio path/to/audio.wav --model cnn
+python src/predict.py --audio path/to/audio.wav --model lstm
+```
+
 
 ## Generate Samples for Testing
 
@@ -136,7 +143,7 @@ python generate_sample.py --source mozilla --samples-per-language 5
 # Samples copied from local FLEURS training files
 python generate_sample.py --source fleurs_local --samples-per-language 5
 
-# Samples copied from auxiliary files, such as Amharic ALFFA padding
+# Samples copied from auxiliary files, for Amharic ALFFA padding
 python generate_sample.py --source auxiliary --samples-per-language 5
 ```
 
@@ -144,11 +151,13 @@ After generating samples, run predictions on all files in
 `samples/predict_test/`:
 
 ```bash
-python run_sample_predictions.py
+python run_sample_predictions.py --model cnn
+python run_sample_predictions.py --model lstm
 ```
 
 This prints per-file predictions, per-language sample accuracy, overall sample
-accuracy, and saves detailed scores to `results/sample_predictions.csv`.
+accuracy, and saves detailed scores to
+`results/{model_type}/sample_predictions.csv`.
 
 
 ## Model Architecture

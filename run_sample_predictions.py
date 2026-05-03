@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 import csv
 import sys
 from collections import defaultdict
@@ -9,12 +10,25 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 SRC_DIR = PROJECT_ROOT / "src"
 sys.path.insert(0, str(SRC_DIR))
 
-from src.predict import load_model, predict
+from src.config import MODEL_TYPE
+from src.predict import MODEL_CHOICES, load_model, predict
 
 
 SAMPLES_DIR = PROJECT_ROOT / "samples" / "predict_test"
-RESULTS_PATH = PROJECT_ROOT / "results" / "sample_predictions.csv"
 AUDIO_EXTENSIONS = {".wav", ".mp3", ".flac", ".ogg"}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run batch predictions for generated sample audio files."
+    )
+    parser.add_argument(
+        "--model",
+        choices=MODEL_CHOICES,
+        default=MODEL_TYPE,
+        help=f"Model architecture to use. Defaults to MODEL_TYPE={MODEL_TYPE!r}.",
+    )
+    return parser.parse_args()
 
 
 def find_audio_files(samples_dir: Path) -> list[Path]:
@@ -26,6 +40,10 @@ def find_audio_files(samples_dir: Path) -> list[Path]:
 
 
 def main():
+    args = parse_args()
+    model_type = args.model.lower()
+    results_path = PROJECT_ROOT / "results" / model_type / "sample_predictions.csv"
+
     audio_files = find_audio_files(SAMPLES_DIR)
     if not audio_files:
         print(f"No audio files found in {SAMPLES_DIR}")
@@ -33,13 +51,14 @@ def main():
         return
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_model(device)
+    model = load_model(device, model_type)
 
-    RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    results_path.parent.mkdir(parents=True, exist_ok=True)
 
     rows = []
     correct_by_lang = defaultdict(int)
     total_by_lang = defaultdict(int)
+    print(f"Model: {model_type}")
     print(f"\nFound {len(audio_files)} sample files\n")
     print(f"{'Expected':12s} {'Predicted':12s} {'Confidence':>10s}  File")
     print("-" * 80)
@@ -68,12 +87,12 @@ def main():
         row.update({f"score_{lang}": score for lang, score in confidences.items()})
         rows.append(row)
 
-    with open(RESULTS_PATH, "w", newline="", encoding="utf-8") as f:
+    with open(results_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\nSaved detailed results to {RESULTS_PATH}")
+    print(f"\nSaved detailed results to {results_path}")
 
     total = sum(total_by_lang.values())
     correct = sum(correct_by_lang.values())
