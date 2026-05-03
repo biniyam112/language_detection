@@ -14,18 +14,18 @@ import torch.nn.functional as F
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import CHECKPOINT_DIR, IDX_TO_LANG, LANGUAGES
-from model import LanguageCNN
-from features import load_audio, extract_mel_spectrogram
+from config import IDX_TO_LANG, LANGUAGES, MODEL_CHECKPOINT_DIR
+from model import build_model
+from features import load_audio, extract_mel_spectrogram, prepare_waveform
 
 
-def load_model(device: torch.device) -> LanguageCNN:
-    ckpt_path = CHECKPOINT_DIR / "best_model.pth"
+def load_model(device: torch.device) -> torch.nn.Module:
+    ckpt_path = MODEL_CHECKPOINT_DIR / "best_model.pth"
     if not ckpt_path.exists():
         raise FileNotFoundError(
             f"No checkpoint at {ckpt_path}. Train the model first with: python src/train.py"
         )
-    model = LanguageCNN().to(device)
+    model = build_model().to(device)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
@@ -33,7 +33,7 @@ def load_model(device: torch.device) -> LanguageCNN:
 
 
 @torch.no_grad()
-def predict(audio_path: str, model: LanguageCNN, device: torch.device):
+def predict(audio_path: str, model: torch.nn.Module, device: torch.device):
     """Run inference on a single audio file.
 
     Returns:
@@ -41,6 +41,7 @@ def predict(audio_path: str, model: LanguageCNN, device: torch.device):
         each language name to its probability.
     """
     waveform = load_audio(audio_path)
+    waveform = prepare_waveform(waveform, training=False)
     mel = extract_mel_spectrogram(waveform).unsqueeze(0).to(device)  # (1,1,n_mels,T)
     logits = model(mel)
     probs = F.softmax(logits, dim=1).squeeze(0).cpu()

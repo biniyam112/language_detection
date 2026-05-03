@@ -1,5 +1,5 @@
 """
-CNN model for spoken language identification.
+Neural models for spoken language identification.
 
 Architecture
 ------------
@@ -23,7 +23,7 @@ Classifier:
 import torch
 import torch.nn as nn
 
-from config import NUM_CLASSES
+from config import MODEL_TYPE, N_MELS, NUM_CLASSES
 
 
 class ConvBlock(nn.Module):
@@ -100,12 +100,66 @@ class LanguageCNN(nn.Module):
         return x
 
 
+class LanguageLSTM(nn.Module):
+    """Bidirectional LSTM baseline over Mel-spectrogram time frames."""
+
+    def __init__(
+        self,
+        num_classes: int = NUM_CLASSES,
+        n_mels: int = N_MELS,
+        hidden_size: int = 128,
+        num_layers: int = 2,
+        dropout: float = 0.3,
+    ):
+        super().__init__()
+        self.lstm = nn.LSTM(
+            input_size=n_mels,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout if num_layers > 1 else 0.0,
+            bidirectional=True,
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(hidden_size * 2, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout),
+            nn.Linear(128, num_classes),
+        )
+
+    def _sequence_embedding(self, x: torch.Tensor) -> torch.Tensor:
+        # Input is (batch, 1, n_mels, time); LSTM expects (batch, time, n_mels).
+        x = x.squeeze(1).transpose(1, 2)
+        output, _ = self.lstm(x)
+        return output.mean(dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self._sequence_embedding(x)
+        return self.classifier(x)
+
+    def extract_embeddings(self, x: torch.Tensor) -> torch.Tensor:
+        x = self._sequence_embedding(x)
+        x = self.classifier[0](x)
+        x = self.classifier[1](x)
+        return x
+
+
+def build_model(model_type: str = MODEL_TYPE, num_classes: int = NUM_CLASSES) -> nn.Module:
+    """Create the configured language identification model."""
+    model_type = model_type.lower()
+    if model_type == "cnn":
+        return LanguageCNN(num_classes=num_classes)
+    if model_type == "lstm":
+        return LanguageLSTM(num_classes=num_classes)
+    raise ValueError(f"Unknown MODEL_TYPE {model_type!r}; expected 'cnn' or 'lstm'.")
+
+
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 if __name__ == "__main__":
-    model = LanguageCNN()
+    model = build_model()
     print(model)
     print(f"\nTrainable parameters: {count_parameters(model):,}")
 

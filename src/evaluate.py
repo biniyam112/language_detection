@@ -9,8 +9,11 @@ Produces:
 
 Usage:
     python src/evaluate.py
+    python src/evaluate.py --model cnn
+    python src/evaluate.py --model lstm
 """
 
+import argparse
 import sys
 import json
 from pathlib import Path
@@ -35,20 +38,39 @@ from config import (
     IDX_TO_LANG,
     BATCH_SIZE,
     PROJECT_ROOT,
+    MODEL_TYPE,
 )
-from model import LanguageCNN
+from model import build_model
 from dataset import get_dataloaders
 
 RESULTS_DIR = PROJECT_ROOT / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
+MODEL_CHOICES = ("cnn", "lstm")
 
 
-def load_best_model(device: torch.device) -> LanguageCNN:
-    ckpt_path = CHECKPOINT_DIR / "best_model.pth"
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Evaluate a spoken language identification model."
+    )
+    parser.add_argument(
+        "--model",
+        choices=MODEL_CHOICES,
+        default=MODEL_TYPE,
+        help=f"Model architecture to evaluate. Defaults to MODEL_TYPE={MODEL_TYPE!r}.",
+    )
+    return parser.parse_args()
+
+
+def load_best_model(
+    device: torch.device,
+    model_type: str,
+    checkpoint_dir: Path,
+) -> torch.nn.Module:
+    ckpt_path = checkpoint_dir / "best_model.pth"
     if not ckpt_path.exists():
         raise FileNotFoundError(f"No checkpoint found at {ckpt_path}. Train first.")
 
-    model = LanguageCNN().to(device)
+    model = build_model(model_type).to(device)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state_dict"])
     model.eval()
@@ -82,7 +104,7 @@ def collect_predictions(model, loader, device):
     )
 
 
-def plot_confusion_matrix(y_true, y_pred):
+def plot_confusion_matrix(y_true, y_pred, results_dir: Path):
     cm = confusion_matrix(y_true, y_pred)
     fig, ax = plt.subplots(figsize=(8, 6))
     sns.heatmap(
@@ -95,13 +117,13 @@ def plot_confusion_matrix(y_true, y_pred):
     ax.set_ylabel("True")
     ax.set_title("Confusion Matrix")
     fig.tight_layout()
-    path = RESULTS_DIR / "confusion_matrix.png"
+    path = results_dir / "confusion_matrix.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved: {path}")
 
 
-def plot_pca_embeddings(embeddings, labels):
+def plot_pca_embeddings(embeddings, labels, results_dir: Path, model_type: str):
     """Run PCA on 128-d embeddings and make a 2-D scatter plot."""
     pca = PCA(n_components=2)
     coords = pca.fit_transform(embeddings)
@@ -115,18 +137,18 @@ def plot_pca_embeddings(embeddings, labels):
         )
     ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]:.1%} variance)")
     ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]:.1%} variance)")
-    ax.set_title("PCA of CNN Embeddings by Language")
+    ax.set_title(f"PCA of {model_type.upper()} Embeddings by Language")
     ax.legend()
     fig.tight_layout()
-    path = RESULTS_DIR / "pca_embeddings.png"
+    path = results_dir / "pca_embeddings.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved: {path}")
 
 
-def plot_training_history():
+def plot_training_history(checkpoint_dir: Path, results_dir: Path):
     """Plot loss and accuracy curves from the saved history JSON."""
-    history_path = CHECKPOINT_DIR / "history.json"
+    history_path = checkpoint_dir / "history.json"
     if not history_path.exists():
         print("No training history found, skipping curves.")
         return
@@ -153,15 +175,22 @@ def plot_training_history():
     ax2.legend()
 
     fig.tight_layout()
-    path = RESULTS_DIR / "training_curves.png"
+    path = results_dir / "training_curves.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
     print(f"Saved: {path}")
 
 
 def main():
+    args = parse_args()
+    model_type = args.model.lower()
+    checkpoint_dir = CHECKPOINT_DIR / model_type
+    results_dir = RESULTS_DIR / model_type
+    results_dir.mkdir(parents=True, exist_ok=True)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = load_best_model(device)
+    print(f"Model type: {model_type}")
+    model = load_best_model(device, model_type, checkpoint_dir)
     loaders = get_dataloaders(batch_size=BATCH_SIZE)
 
     y_true, y_pred, embeddings = collect_predictions(
@@ -180,18 +209,18 @@ def main():
     print(f"Overall accuracy: {acc:.1%}")
 
     # Save report to file
-    report_path = RESULTS_DIR / "classification_report.txt"
+    report_path = results_dir / "classification_report.txt"
     with open(report_path, "w") as f:
         f.write(report)
         f.write(f"\nOverall accuracy: {acc:.1%}\n")
     print(f"Saved: {report_path}")
 
     # Plots
-    plot_confusion_matrix(y_true, y_pred)
-    plot_pca_embeddings(embeddings, y_true)
-    plot_training_history()
+    plot_confusion_matrix(y_true, y_pred, results_dir)
+    plot_pca_embeddings(embeddings, y_true, results_dir, model_type)
+    plot_training_history(checkpoint_dir, results_dir)
 
-    print(f"\nAll results saved to {RESULTS_DIR}/")
+    print(f"\nAll results saved to {results_dir}/")
 
 
 if __name__ == "__main__":

@@ -24,23 +24,23 @@ import gradio as gr
 # Make src importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from config import CHECKPOINT_DIR, IDX_TO_LANG, LANGUAGES, SAMPLE_RATE
-from model import LanguageCNN
-from features import extract_mel_spectrogram, pad_or_truncate
+from config import IDX_TO_LANG, LANGUAGES, MODEL_CHECKPOINT_DIR, SAMPLE_RATE
+from model import build_model
+from features import extract_mel_spectrogram, prepare_waveform
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL = None
 
 
-def get_model() -> LanguageCNN:
+def get_model() -> torch.nn.Module:
     global MODEL
     if MODEL is None:
-        ckpt_path = CHECKPOINT_DIR / "best_model.pth"
+        ckpt_path = MODEL_CHECKPOINT_DIR / "best_model.pth"
         if not ckpt_path.exists():
             raise FileNotFoundError(
                 "No trained model found. Run `python src/train.py` first."
             )
-        MODEL = LanguageCNN().to(DEVICE)
+        MODEL = build_model().to(DEVICE)
         ckpt = torch.load(ckpt_path, map_location=DEVICE, weights_only=False)
         MODEL.load_state_dict(ckpt["model_state_dict"])
         MODEL.eval()
@@ -77,7 +77,7 @@ def identify_language(audio):
         )
         waveform = torch.from_numpy(waveform_np).float()
 
-    waveform = pad_or_truncate(waveform)
+    waveform = prepare_waveform(waveform, training=False)
     mel = extract_mel_spectrogram(waveform).unsqueeze(0).to(DEVICE)
 
     model = get_model()

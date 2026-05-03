@@ -19,7 +19,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from dataset import _discover_files, cache_path_for_audio
-from features import load_audio, extract_mel_spectrogram
+from features import load_audio, extract_mel_spectrogram, prepare_waveform
 
 
 def precompute_one(audio_path: str, overwrite: bool = False) -> tuple[str, bool, str]:
@@ -34,6 +34,7 @@ def precompute_one(audio_path: str, overwrite: bool = False) -> tuple[str, bool,
 
     try:
         waveform = load_audio(audio_path)
+        waveform = prepare_waveform(waveform, training=False)
         mel = extract_mel_spectrogram(waveform)
         cache_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(mel, cache_path)

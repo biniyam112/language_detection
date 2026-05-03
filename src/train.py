@@ -1,10 +1,13 @@
 """
-Training script for the spoken language identification CNN.
+Training script for spoken language identification models.
 
 Usage:
     python src/train.py
+    python src/train.py --model cnn
+    python src/train.py --model lstm
 """
 
+import argparse
 import sys
 import time
 import json
@@ -31,9 +34,26 @@ from config import (
     SEED,
     BATCH_SIZE,
     NUM_WORKERS,
+    MODEL_TYPE,
 )
-from model import LanguageCNN, count_parameters
+from model import build_model, count_parameters
 from dataset import get_dataloaders
+
+
+MODEL_CHOICES = ("cnn", "lstm")
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Train a spoken language identification model."
+    )
+    parser.add_argument(
+        "--model",
+        choices=MODEL_CHOICES,
+        default=MODEL_TYPE,
+        help=f"Model architecture to train. Defaults to MODEL_TYPE={MODEL_TYPE!r}.",
+    )
+    return parser.parse_args()
 
 
 def set_seed(seed: int = SEED):
@@ -105,6 +125,11 @@ def evaluate(model, loader, criterion, device):
 
 
 def main():
+    args = parse_args()
+    model_type = args.model.lower()
+    checkpoint_dir = CHECKPOINT_DIR / model_type
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
     set_seed()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -113,7 +138,8 @@ def main():
     loaders = get_dataloaders(batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     # Model
-    model = LanguageCNN().to(device)
+    model = build_model(model_type).to(device)
+    print(f"Model type: {model_type}")
     print(f"Model parameters: {count_parameters(model):,}\n")
 
     # Training components
@@ -157,11 +183,12 @@ def main():
         # Save best checkpoint
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            ckpt_path = CHECKPOINT_DIR / "best_model.pth"
+            ckpt_path = checkpoint_dir / "best_model.pth"
             torch.save({
                 "epoch": epoch,
                 "model_state_dict": model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
+                "model_type": model_type,
                 "val_loss": val_loss,
                 "val_acc": val_acc,
             }, ckpt_path)
@@ -172,7 +199,7 @@ def main():
             break
 
     # Save training history
-    history_path = CHECKPOINT_DIR / "history.json"
+    history_path = checkpoint_dir / "history.json"
     with open(history_path, "w") as f:
         json.dump(history, f, indent=2)
     print(f"\nTraining history saved to {history_path}")

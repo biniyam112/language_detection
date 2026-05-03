@@ -33,8 +33,18 @@ NUM_EPOCHS = 30
 LEARNING_RATE = 3e-4
 WEIGHT_DECAY = 1e-4
 NUM_WORKERS = 4
+MODEL_TYPE = "cnn"  # "cnn" for the main residual CNN, "lstm" for comparison
+MODEL_CHECKPOINT_DIR = CHECKPOINT_DIR / MODEL_TYPE
 CACHE_FEATURES = True
-FEATURE_CACHE_DIR = PROCESSED_DIR / "mel_spectrograms"
+TRAIN_CACHE_FEATURES = True
+MOZILLA_CLIPS_PER_LANGUAGE = 10_000
+FLEURS_CLIPS_PER_LANGUAGE = 5_000
+MAX_CLIPS_PER_LANGUAGE = MOZILLA_CLIPS_PER_LANGUAGE + FLEURS_CLIPS_PER_LANGUAGE
+USE_VAD_TRIM = True
+USE_WAVEFORM_AUGMENTATION = True
+TRAIN_RANDOM_CROP = True
+CACHE_VERSION = "v3_mozilla_fleurs"
+FEATURE_CACHE_DIR = PROCESSED_DIR / "mel_spectrograms" / CACHE_VERSION
 
 # Early stopping
 ES_PATIENCE = 8
@@ -53,7 +63,7 @@ TEST_RATIO = 0.15
 SEED = 42
 
 # ── Ensure directories exist ────────────────────────────────────────────
-for d in [RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR]:
+for d in [RAW_DIR, PROCESSED_DIR, CHECKPOINT_DIR, MODEL_CHECKPOINT_DIR]:
     d.mkdir(parents=True, exist_ok=True)
 FEATURE_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 for lang in LANGUAGES:
