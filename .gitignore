@@ -6,7 +6,7 @@ __pycache__/
 *.pyc
 *.pyo
 .DS_Store
-*.pdf
 notebooks/recordings/
-/samples/
 report.tex
+CISC 5800 ML_Syllabus_S26.pdf
+conference-template-a4.pdf
