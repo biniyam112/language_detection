@@ -1,8 +1,70 @@
-# Spoken Language Identification
+# Spoken Language Identification Using Deep Learning
 
-A PyTorch spoken language identification project that predicts the spoken
-language from an audio recording. The main model is a residual CNN over
-Mel-spectrograms, with an optional LSTM baseline for comparison.
+### Neural network models for identifying spoken language from audio recordings
+
+**Author:** Biniyam Zergaw  
+**Course:** Machine Learning – Fordham University  
+**Date:** Spring 2026
+
+## Project Overview
+
+This project builds a spoken language identification system that predicts the
+language being spoken in an audio recording. The final system supports nine
+languages: Amharic, Arabic, Chinese, English, French, Hindi, Italian, Russian,
+and Spanish.
+
+The main model is a residual convolutional neural network (CNN) trained on
+128-bin log-Mel spectrograms. A bidirectional LSTM model is also included as a
+comparison model to test whether a sequence-based architecture performs better
+on the same audio features.
+
+The dataset combines Mozilla Common Voice recordings with Google FLEURS
+recordings. The code keeps those sources separated while
+still using both during training. This makes it easier to compare data sources
+and improves robustness beyond a single recording domain.
+
+## Problem Formulation
+
+The task is formulated as a supervised multi-class classification problem.
+Given a short speech recording, the model predicts one of nine language labels:
+
+```text
+audio recording -> log-Mel spectrogram -> neural network -> language label
+```
+
+Each audio file is loaded, resampled to 16 kHz, converted to a fixed-duration
+5-second waveform, transformed into a log-Mel spectrogram, and passed into the
+classifier. The model is trained with cross-entropy loss so that the predicted
+probability for the correct language is maximized.
+
+## Evaluation Strategy
+
+The project evaluates performance in following ways:
+
+- A held-out test split is used to compute accuracy, precision, recall, and
+  F1-score for each language.
+- Confusion matrices show which languages are most commonly confused.
+- PCA visualizations show how well the learned embeddings separate languages.
+- Generated sample predictions test the saved models on small sets of audio
+  samples from different sources.
+- CNN and LSTM results are compared to see whether the convolutional or
+  sequence-based model is better suited for this problem.
+
+## Key Findings
+
+- The residual CNN performed better than the LSTM baseline on log-Mel
+  spectrograms.
+- The CNN achieved stronger held-out test accuracy and better generated-sample
+  prediction accuracy.
+- The LSTM improved with more data but still did not match the CNN, suggesting
+  that local time-frequency patterns in spectrograms are better captured by
+  convolutional layers.
+- Some confusion remains among acoustically or linguistically similar
+  languages, especially where recordings share similar speech patterns or
+  dataset conditions.
+- Real microphone recordings are harder than dataset test clips because of
+  domain mismatch, background noise, silence, microphone quality, and speaker
+  variation.
 
 ## Supported Languages
 
@@ -27,7 +89,7 @@ python src/train.py --model cnn
 python src/train.py --model lstm
 
 # 5. Evaluate the held-out test split
-python src/evaluate.py
+python src/evaluate.py --model cnn
 
 # 6. Predict one audio file
 python src/predict.py --audio path/to/audio.wav --model cnn
@@ -38,9 +100,8 @@ python app/app.py
 
 ## Dataset Layout
 
-Training uses up to `10,000` primary Mozilla/local clips plus up to `5,000`
-FLEURS clips per language. Amharic can use auxiliary local clips to fill the
-primary `10,000`-clip bucket when Mozilla has fewer examples available.
+Training uses up to `10,000` Mozilla clips plus up to `5,000` FLEURS clips per
+language.
 
 Expected audio layout:
 
@@ -52,7 +113,6 @@ data/raw/
       english_fleurs_00001.wav
   amharic/
     common_voice_clip_1.mp3
-    alffa_00001.wav
     fleurs/
       amharic_fleurs_00001.wav
 ```
@@ -80,8 +140,6 @@ python helpers/download_fleurs.py
 # Extract data from a local download .tar.xz file
 python helpers/extract_local_data.py --archive path/to/archive.tar.gz --language english
 
-# Top up Amharic with the auxiliary ALFFA dataset since Mozilla Amharic is lacking
-python helpers/populate_amharic.py --target 10000
 ```
 
 ## Training And Evaluation
@@ -143,8 +201,6 @@ python generate_sample.py --source mozilla --samples-per-language 5
 # Samples copied from local FLEURS training files
 python generate_sample.py --source fleurs_local --samples-per-language 5
 
-# Samples copied from auxiliary files, for Amharic ALFFA padding
-python generate_sample.py --source auxiliary --samples-per-language 5
 ```
 
 After generating samples, run predictions on all files in
