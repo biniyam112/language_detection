@@ -50,43 +50,41 @@ DOWNLOAD_TIMEOUT = (30, 300)  # connect timeout, read timeout
 DOWNLOAD_RETRIES = 10
 DOWNLOAD_RETRY_DELAY_SEC = 10
 
-# Dataset IDs for Common Voice Scripted Speech 25.0 (ordered smallest → largest)
+# Dataset IDs for Common Voice Scripted Speech 25.0 (ordered largest → smallest)
 DATASET_IDS = {
-    "amharic":  "cmn29lq6f0164o10748yd3o7w",   #  58.86 MB
-    "hindi":    "cmn2cxzy701iumm077t5ayw0e",   # 544.38 MB
-    "arabic":   "cmn2g7uu701fqo1072r5na25l",   #   3.28 GB
-    "russian":  "cmn2h1dg201gro107lpynbbd6",   #   6.55 GB
-    "italian":  "cmn2h0yei01msmm07u8z5vu87",   #   9.71 GB
-    "chinese":  "cmn3iaztg00e4mb070uvufz7q",   #  21.38 GB
-    "french":   "cmn5zugst00w3nv07upovf2bg",   #  28.39 GB
-    "german":   "cmn4rsdh6009unz07jdn2ol9p",   #  34.69 GB
-    "spanish":  "cmn4z1n52000knv07h01532dd",   #  48.23 GB
     "english":  "cmndapwry02jnmh07dyo46mot",   #  87.84 GB
+    "spanish":  "cmn4z1n52000knv07h01532dd",   #  48.23 GB
+    "french":   "cmn5zugst00w3nv07upovf2bg",   #  28.39 GB
+    "chinese":  "cmn3iaztg00e4mb070uvufz7q",   #  21.38 GB
+    "italian":  "cmn2h0yei01msmm07u8z5vu87",   #   9.71 GB
+    "russian":  "cmn2h1dg201gro107lpynbbd6",   #   6.55 GB
+    "arabic":   "cmn2g7uu701fqo1072r5na25l",   #   3.28 GB
+    "hindi":    "cmn2cxzy701iumm077t5ayw0e",   # 544.38 MB
+    "amharic":  "cmn29lq6f0164o10748yd3o7w",   #  58.86 MB
 }
 
 LOCALE_MAP = {
     "en": "english",
     "es": "spanish",
     "fr": "french",
-    "de": "german",
     "it": "italian",
     "ru": "russian",
     "am": "amharic",
     "ar": "arabic",
     "zh-CN": "chinese",
+    "hi": "hindi",
 }
 
 DATASET_SIZES = {
-    "amharic":  "58.86 MB",
-    "hindi":    "544.38 MB",
-    "arabic":   "3.28 GB",
-    "russian":  "6.55 GB",
-    "italian":  "9.71 GB",
-    "chinese":  "21.38 GB",
-    "french":   "28.39 GB",
-    "spanish":  "48.23 GB",
     "english":  "87.84 GB",
-    "german":   "34.69 GB",
+    "spanish":  "48.23 GB",
+    "french":   "28.39 GB",
+    "chinese":  "21.38 GB",
+    "italian":  "9.71 GB",
+    "russian":  "6.55 GB",
+    "arabic":   "3.28 GB",
+    "hindi":    "544.38 MB",
+    "amharic":  "58.86 MB",
 }
 
 

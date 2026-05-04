@@ -8,3 +8,5 @@ __pycache__/
 .DS_Store
 *.pdf
 notebooks/recordings/
+/samples/
+report.tex

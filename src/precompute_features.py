@@ -3,6 +3,8 @@ Precompute Mel-spectrogram tensors for faster training.
 
 Run once after downloading data:
     python src/precompute_features.py
+    python src/precompute_features.py --overwrite
+    python src/precompute_features.py --workers 4
 
 Training will then load cached .pt tensors from data/processed/mel_spectrograms/
 instead of decoding audio and computing features every epoch.
