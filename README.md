@@ -3,7 +3,7 @@
 ### Neural network models for identifying spoken language from audio recordings
 
 **Author:** Biniyam Zergaw  
-**Course:** Machine Learning – Fordham University  
+**Course:** Machine Learning – Fordham University
 **Date:** Spring 2026
 
 ## Project Overview
@@ -301,7 +301,6 @@ language_detection/
     precompute_features.py  Feature cache builder
   helpers/                  Download, extraction, and data population scripts
   archived_unused_scripts/  Older scripts kept for reference only
-  app/app.py                Gradio live demo
   generate_sample.py        Sample generator for multiple sources
   run_sample_predictions.py Batch prediction for generated samples
   checkpoints/{model_type}/ Saved model weights and training history
