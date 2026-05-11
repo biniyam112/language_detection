@@ -300,7 +300,7 @@ language_detection/
   src/
     config.py               Hyperparameters, paths, language list, model type
     features.py             Audio loading, preprocessing, feature extraction
-    dataset.py              Source-aware dataset discovery and DataLoaders
+    dataset.py              Dataset discovery and DataLoaders
     model.py                CNN and LSTM architectures
     train.py                Training loop
     evaluate.py             Metrics and visualizations
