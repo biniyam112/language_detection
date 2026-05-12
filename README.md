@@ -2,7 +2,7 @@
 
 ### Neural network models for identifying spoken language from audio recordings
 
-**Author:** Biniyam Zergaw  
+**Project by:** Biniyam Zergaw  
 **Course:** Machine Learning – Fordham University
 **Date:** Spring 2026
 
