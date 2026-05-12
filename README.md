@@ -84,7 +84,7 @@ It is recommended to install dependencies inside a Python virtual environment.
 python -m venv venv
 
 # Activate it on Windows PowerShell
-.\venv\Scripts\Activate
+.\venv\Scripts\Activate.ps1
 
 # Activate venv in macOS or Linux 
 source venv/bin/activate
