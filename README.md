@@ -77,6 +77,19 @@ The project evaluates performance in following ways:
 
 Amharic, Arabic, Chinese, English, French, Hindi, Italian, Russian, Spanish
 
+## Environment Setup
+It is recommended to install dependencies inside a Python virtual environment.
+```bash
+# Create a virtual environment
+python -m venv venv
+
+# Activate it on Windows PowerShell
+.\venv\Scripts\Activate
+
+# Activate venv in macOS or Linux 
+source venv/bin/activate
+```
+
 ## Quick Start
 
 Since the trained models and sample audio files are included in this repository, 
