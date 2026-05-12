@@ -173,6 +173,17 @@ MAX_CLIPS_PER_LANGUAGE = MOZILLA_CLIPS_PER_LANGUAGE + FLEURS_CLIPS_PER_LANGUAGE
 
 ## Data Helper Scripts
 
+### Mozilla Data Collective API Key
+
+Downloading Mozilla/Common Voice data with `helpers/download_mozilla_data.py --api`
+requires a Mozilla Data Collective API key.
+
+Create a `.env` file in the project root:
+
+```env
+MDC_API_KEY=your_mozilla_data_collective_api_key_here
+
+
 ```bash
 # Verify existing data counts
 python helpers/download_mozilla_data.py --verify
